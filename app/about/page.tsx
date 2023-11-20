@@ -1,5 +1,4 @@
 import Image from 'next/image'
-import { coreContent } from 'pliny/utils/contentlayer'
 import { genPageMetadata } from 'app/seo'
 
 export const metadata = genPageMetadata({ title: 'About' })

@@ -4,7 +4,7 @@ import SocialIcon from '@/components/social-icons'
 
 export default function Footer() {
   return (
-    <footer className="absolute bottom-0 left-0 right-0 m-auto">
+    <footer className="bottom-0 left-0 right-0 m-auto">
       <div className="mt-16 flex flex-col items-center">
         <div className="mb-3 flex space-x-4">
           <SocialIcon kind="mail" href={`mailto:${siteMetadata.email}`} size={6} />

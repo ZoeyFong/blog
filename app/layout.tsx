@@ -10,6 +10,7 @@ import Footer from '@/components/Footer'
 import siteMetadata from '@/data/siteMetadata'
 import { ThemeProviders } from './theme-providers'
 import { Metadata } from 'next'
+import Mdx from './Mdx'
 
 const roboto_mono = Roboto_Mono({
   subsets: ['latin'],
@@ -69,12 +70,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       >
         <ThemeProviders>
           <Analytics analyticsConfig={siteMetadata.analytics as AnalyticsConfig} />
+          <Header />
           <SectionContainer>
             <div className="h-screen">
               <SearchProvider searchConfig={siteMetadata.search as SearchConfig}>
-                <Header />
-                <main className="prose prose-sm mx-auto max-w-4xl font-mono text-black sm:prose lg:prose-lg xl:prose-xl dark:text-white">
-                  {children}
+                <main className="prose prose-sm mx-auto mt-8 min-h-[65%] max-w-4xl font-mono text-black sm:prose lg:prose-lg xl:prose-xl dark:text-white">
+                  <Mdx>{children}</Mdx>
                 </main>
               </SearchProvider>
               <Footer />
