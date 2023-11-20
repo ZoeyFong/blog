@@ -2,8 +2,8 @@ import 'css/tailwind.css'
 import 'pliny/search/algolia.css'
 
 import { Roboto_Mono } from 'next/font/google'
-import { Analytics, AnalyticsConfig } from 'pliny/analytics'
 import { SearchProvider, SearchConfig } from 'pliny/search'
+import { Analytics } from '@vercel/analytics/react'
 import Header from '@/components/Header'
 import SectionContainer from '@/components/SectionContainer'
 import Footer from '@/components/Footer'
@@ -69,7 +69,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         }
       >
         <ThemeProviders>
-          <Analytics analyticsConfig={siteMetadata.analytics as AnalyticsConfig} />
           <Header />
           <SectionContainer>
             <div className="h-screen">
@@ -82,6 +81,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </SectionContainer>
         </ThemeProviders>
+        <Analytics />
       </body>
     </html>
   )
