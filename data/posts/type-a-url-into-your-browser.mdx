@@ -1,0 +1,135 @@
+---
+title: 输入一个 URL 地址到浏览器发生了什么
+date: '2023-11-23'
+tags: ['浏览器', 'TCP', 'HTTP', '浏览器缓存', 'DNS']
+draft: false
+summary: 非常经典的一个问题，其实涉及的方面很多，从各个方面浅聊一下。
+---
+
+整体流程如下
+
+1. 解析 URL
+2. 缓存判断
+3. 域名解析 DNS 解析
+4. 获取 MAC 地址
+5. TCP 三次握手
+6. HTTPS 的 TLS 四次握手
+7. 发送 HTTP 请求
+8. 服务器处理请求并返回 HTTP 报文
+9. 断开连接
+10. 浏览器解析渲染页面
+
+# 什么是 URL
+
+URL (Uniform Resource Locator), 统一资源定位符，用于定位互联网上资源，俗称网址。遵守以下的语法规则：
+
+`scheme://host.domain:port/path/filename?search#hash`
+
+各部分解释如下：
+
+- `scheme`: 定义因特网服务的类型。常见的协议 http, https, ftp ...
+- `host`: 定义域主机（http 的默认主机是 www）
+- `domain`: 定义因特网域名，比如 w3school.com.cn
+- `port`: 定义主机上的端口号（HTTP协议默认端口是80，HTTPS协议默认端口是443）
+- `path`: 定义服务器上的路径（如果省略，则文档必须位于网站的根目录中）
+- `filename`: 定义文档/资源的名称
+- `search`: 从"?"开始到"#"为止之间的部分为参数部分, 以"&"分割
+- `hash`: "#"之后的参数都是锚部分
+
+# 浏览器缓存
+
+输入一个 URL 后，浏览器会判断是否存在缓存，并比较缓存是否过期，当响应可复用时，源服务器不需要处理请求 —— 因为它不需要解析和路由请求、根据 cookie 恢复会话、查询数据库以获取结果或渲染模板引擎。这减少了服务器上的负载。
+
+HTTP缓存类型
+
+- 强缓存
+- 协商缓存
+
+## 强缓存
+
+在缓存时间未过期的情况下，则直接使用已缓存资源。如缓存资源已过期，执行协商缓存策略。
+
+### 强缓存标头 Expires 或 max-age
+
+| 标头      | Expires                                       | Cache-Control                                                          |
+| --------- | --------------------------------------------- | ---------------------------------------------------------------------- |
+| HTTP 协议 | HTTP/1.0                                      | HTTP/1.1                                                               |
+| 用途      | 指定过期的**绝对**时间                        | 用 max-age —— 指定到过期的**相对**时间(s)                              |
+| 举例      | Expires: Tue, 28 Feb 2022 22:22:22 GMT        | Cache-Control: max-age=3600                                            |
+| 优先级    | 在不支持 Cache-Control的浏览器则以Expires为准 | 如果 Expires 和 Cache-Control: max-age 都可用，则将 max-age 定义为首选 |
+
+## 协商缓存
+
+协商缓存即和服务器协商是否使用缓存，通过判断后决定重新加载资源，或返回 HTTP StatusCode 304
+
+### 协商缓存响应头 ETag 或 Last-Modified
+
+- ETag / If-None-Match （优先级高）
+- Last-Modified / If-Modfied-Since （与 ETag 同时出现时，使用 ETag）
+
+#### ETag / If-None-Match
+
+浏览器携带请求标头 If-None-Match 发起请求，当服务器计算的文件 hash 值/文件信息，与 If-None-Match 携带的 <etag_value> 值相符，会返回 304。否则会返回 200 和新的 ETag。
+
+#### Last-Modified / If-Modfied-Since
+
+浏览器携带请求标头 If-Modfied-Since 发起请求，当服务器验证资源最后修改时间为 If-Modfied-Since 时，返回 304 否则返回 200 和新的 Last-Modified。
+
+#### Etag 与 Last-Modified 对比
+
+🌰 1: 如果服务端修改了一段代码，然后又改回去了，修改时间改变但资源内容没有变化。如果使用的是 Last-Modified 则造成了不必要的消耗。
+
+🌰 2: 文件修改在秒级内，Last-Modified 的精度只能到秒，导致资源无法更新。
+
+总结： ETag 策略优于 Last-Modified，不过 ETag 可能存在额外 CPU 消耗
+
+- ETag 精度（毫秒级）高于 Last-Modified (秒级)
+- ETag 根据内容生成的 hash 来比较的，只要资源文件内容不变，就会应用客户端的缓存，减少不必要的传输
+- 生成 ETag 的算法谨慎选择，CPU 密集型需考虑消耗。
+- 分布式部署时多个服务器节点上生成的 ETag 值必须保持一致
+
+# DNS 解析
+
+DNS ( Domain Name System，域名系统)提供了将域名转换为 IP 地址的服务。为了完成这个转化工作，DNS 的数据库中需要维护相关的数据，这些数据被叫做 RR（Resource Record，资源记录）。资源记录有很多种类型，比如 A、NS、SOA、CNAME 和 PTR 记录。
+
+大家接触最多的就是 A（Address）记录。A 记录是一条从域名到 IP 地址的映射记录。而 CNAME（Canonical Name）记录是一条从域名到域名的映射记录。它在 CDN 技术中有举足轻重的作用，很好地实现了业务域名与 CDN 系统域名的解耦。简单理解，如果一个域名配置了 A 记录，DNS 就会把它解析成 A 记录指定的 IP 地址；如果一个域名配置了 CNAME 记录，DNS 就会把它解析成 CNAME 记录指定的另外一个域名；A 记录和 CNAME 记录是互斥的，不能同时存在。
+
+NS （Name Server）记录是和 DNS 服务器相关的一条记录，它指定该域名应该由哪一台 DNS 服务器进行解析。一般把通过 NS 记录指定的 DNS 服务器叫做该域名的权威 DNS 服务器。
+
+DNS 通过递归解析的方式，将实际服务器的 IP 地址从 URL 域名中解析出来。
+
+## 存在 DNS 缓存时的解析过程
+
+> 有缓存时，递归的方式为从左到右，即： www.google.com -> google.com -> .com
+> 每个电脑都有自己的浏览器 DNS 缓存，比如 `chrome://net-internals/#dns` 下可以直接查询 chrome 中的 DNS 缓存。操作系统，host 文件等也存在 DNS 缓存。当本地存在缓存时，解析过程：
+
+- 在浏览器中输入 www.google.com 后浏览器会先查看自身有没有对这个域名的缓存，有则返回。
+- 浏览器中没有缓存再去问操作系统缓存中是否有对这个域名的缓存，有则返回。
+- 操作系统中没有缓存则再去 hosts 文件中查找，有则返回。
+- hosts 文件中也没有时才会再去问本地域名服务器。
+- 本地域名服务器会先看自身有没有 www.google.com 对应 IP，也就是权威域名服务器中的 A 记录，有则返回。
+- 本地域名服务器中没有则再去问 google.com 域名服务器有没有 NS 记录，有则去问它。
+- 上述都没有则再去问顶级域名服务器 .com 域名服务器中有没有 NS 记录，
+- 如果顶级域名服务器中也没有 NS 记录才会去问根域名服务器。
+
+## 不存在 DNS 缓存的解析过程
+
+> 当连顶级域名服务器中也没有 NS 记录，会从右到左的进行域名解析，即: . -> .com -> google.com. -> www.google.com. 。 最后的一个 `.` 为根域名服务器。
+
+- 在浏览器中输入 www.google.com 后询问本地域名服务器: www.google.com 的 IP 是什么
+- 本地域名服务器不知道其对应 IP，则会询问根域名服务器: .（根域名服务器） 的 IP 是什么
+- 根域名服务器答复: 我也不知道，但是 .com 域名服务器有可能知道，你可以去问问它
+- 本地域名服务器向 .com 域名服务器询问: www.google.com 的 IP 是什么
+- .com 域名服务器答复: 我也不知道，但是 google.com 域名服务器有可能知道，你可以去问问它
+- 本地域名服务器向 google.com 域名服务器询问: www.google.com 的 IP 是什么
+- google.com 域名服务器答复: 对应的 IP 或者 别名为 1.1.1.1
+- 如果本地域名服务器得到的是一个别名，则还需要对别名进行查询
+- 本地域名服务器得到 IP 之后本地域名服务器做两件事情:
+- 将 IP 返回给浏览器 并将 IP 放到缓存中
+
+## DNS 负载均衡与 CDN 就近访问
+
+CNAME 域名是 CDN 供应商提供的，CDN 供应商拥有对 CNAME 域名的配置权。CDN 供应商会把 CNAME 域名的 NS 记录设置为自己搭建的 DNS 服务器。这样一来，解析 CNAME 域名的时候就会请求 CDN 供应商搭建的 DNS 服务器。而 CDN 供应商在 DNS 服务器中实现了负载均衡，会返回离用户较近的边缘层节点的 IP 地址。如此便实现了就近访问。
+
+
+// 未完待续
