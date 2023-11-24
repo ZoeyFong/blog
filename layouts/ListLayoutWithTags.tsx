@@ -82,7 +82,7 @@ export default function ListLayoutWithTags({
           All Posts
         </h1>
       </div>
-      <div className="justify-between flex">
+      <div className="flex justify-between">
         <div className="hidden h-full max-h-screen min-w-[280px] max-w-[280px] flex-wrap overflow-auto rounded bg-gray-50 pt-5 shadow-md dark:bg-[#27272a] dark:shadow-gray-800/40 sm:flex">
           <div className="px-6 py-2">
             <ul>
