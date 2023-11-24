@@ -24,6 +24,8 @@ export default function Page() {
             Zoey 🥷
           </h3>
           <div className="text-gray-500 dark:text-gray-400">全沾工程师</div>
+          <div className="text-gray-500 dark:text-gray-400">Think twice, code once.</div>
+
           {/* <div className="flex space-x-3 pt-6">
             <SocialIcon kind="mail" href={`mailto:${email}`} />
             <SocialIcon kind="github" href={github} />

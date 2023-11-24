@@ -26,7 +26,7 @@ export default function Home({ posts }) {
                 <article className="space-y-5 xl:col-span-3">
                   <div className="space-y-6">
                     <Link className="not-prose my-2 space-y-2" href={`/posts/${slug}`}>
-                      <h1 className="text-4xl font-extrabold tracking-tight text-black dark:text-white lg:text-5xl">
+                      <h1 className="text-3xl font-extrabold tracking-tight text-black dark:text-white">
                         {title}
                       </h1>
                     </Link>

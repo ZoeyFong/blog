@@ -1,0 +1,88 @@
+---
+title: HTTP 缓存
+date: '2023-11-23'
+tags: ['HTTP 缓存']
+draft: false
+summary: HTTP 缓存会存储与请求关联的响应，并将存储的响应复用于后续请求。
+---
+
+# HTTP 缓存类型
+
+我们常听强缓存、协商缓存，很容易误解这两个就是 HTTP 的两种缓存类型，其实不然。在 HTTP Caching 标准中，有两种不同类型的缓存：私有缓存和共享缓存。
+
+<img src="/static/images/type-of-cache.png" alt="type-of-cache" />
+
+## 私有缓存
+
+如果响应包含个性化内容并且你只想将响应存储在私有缓存中，则必须指定 private 指令。请注意，如果响应具有 Authorization 标头，则不能将其存储在私有缓存（或共享缓存，除非 Cache-Control 指定的是 public）中。
+
+```
+Cache-Control: private
+```
+
+## 共享缓存
+
+共享缓存位于客户端和服务器之间，可以存储能在用户之间共享的响应。共享缓存可以进一步细分为代理缓存和托管缓存。通常依赖于代理服务器。
+
+---
+
+# HTTP 缓存的处理流程
+
+在正式开始之前，我们通过下面这张图通过宏观视角了解下HTTP 缓存的处理流程（执行顺序）。
+
+<img src="/static/images/http-caching.webp" alt="http-caching" />
+
+---
+
+# 强缓存与协商缓存
+
+我们约定这样两个名称是因为他们在“是否发起服务端请求”，有着明显的不同。
+
+## 强缓存
+
+在缓存时间未过期的情况下，则直接使用已缓存资源。如缓存资源已过期，执行协商缓存策略。
+
+### 强缓存标头 Expires 或 max-age
+
+| 标头      | Expires                                       | Cache-Control                                                          |
+| --------- | --------------------------------------------- | ---------------------------------------------------------------------- |
+| HTTP 协议 | HTTP/1.0                                      | HTTP/1.1                                                               |
+| 用途      | 指定过期的**绝对**时间                        | 用 max-age —— 指定到过期的**相对**时间(s)                              |
+| 举例      | Expires: Tue, 28 Feb 2022 22:22:22 GMT        | Cache-Control: max-age=3600                                            |
+| 优先级    | 在不支持 Cache-Control的浏览器则以Expires为准 | 如果 Expires 和 Cache-Control: max-age 都可用，则将 max-age 定义为首选 |
+
+## 协商缓存
+
+协商缓存即和服务器协商是否使用缓存，通过判断后决定重新加载资源，或返回 HTTP StatusCode 304
+
+### 协商缓存响应头 ETag 或 Last-Modified
+
+- ETag / If-None-Match （优先级高）
+- Last-Modified / If-Modfied-Since （与 ETag 同时出现时，使用 ETag）
+
+#### ETag / If-None-Match
+
+浏览器携带请求标头 If-None-Match 发起请求，当服务器计算的文件 hash 值/文件信息，与 If-None-Match 携带的 `<etag_value>` 值相符，会返回 304。否则会返回 200 和新的 ETag。
+
+#### Last-Modified / If-Modfied-Since
+
+浏览器携带请求标头 If-Modfied-Since 发起请求，当服务器验证资源最后修改时间为 If-Modfied-Since 时，返回 304 否则返回 200 和新的 Last-Modified。
+
+#### Etag 与 Last-Modified 对比
+
+🌰 1: 如果服务端修改了一段代码，然后又改回去了，修改时间改变但资源内容没有变化。如果使用的是 Last-Modified 则造成了不必要的消耗。
+
+🌰 2: 文件修改在秒级内，Last-Modified 的精度只能到秒，导致资源无法更新。
+
+总结： ETag 策略优于 Last-Modified，不过 ETag 可能存在额外 CPU 消耗
+
+- ETag 精度（毫秒级）高于 Last-Modified (秒级)
+- ETag 根据内容生成的 hash 来比较的，只要资源文件内容不变，就会应用客户端的缓存，减少不必要的传输
+- 生成 ETag 的算法谨慎选择，CPU 密集型需考虑消耗。
+- 分布式部署时多个服务器节点上生成的 ETag 值必须保持一致
+
+---
+
+# 参考
+* [MDN](https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Caching)
+* [30分钟搞懂 HTTP 缓存](https://juejin.cn/post/7087759660391858183#heading-3)

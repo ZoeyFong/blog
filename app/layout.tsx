@@ -73,7 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <SectionContainer>
             <div className="h-screen">
               <SearchProvider searchConfig={siteMetadata.search as SearchConfig}>
-                <main className="prose prose-sm mx-auto mt-8 min-h-[65%] max-w-4xl font-mono text-black sm:prose lg:prose-lg xl:prose-xl dark:text-white">
+                <main className="prose prose-sm m-auto mt-8 min-h-[65%] min-w-full font-mono text-black sm:prose lg:prose-lg xl:prose-xl dark:text-white">
                   <Mdx>{children}</Mdx>
                 </main>
               </SearchProvider>

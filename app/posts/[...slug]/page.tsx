@@ -12,6 +12,7 @@ import PostBanner from '@/layouts/PostBanner'
 import { Metadata } from 'next'
 import siteMetadata from '@/data/siteMetadata'
 import { notFound } from 'next/navigation'
+import Toc from '@/components/PostToc'
 
 const defaultLayout = 'PostLayout'
 const layouts = {
@@ -90,14 +91,15 @@ export default async function Page({ params }: { params: { slug: string[] } }) {
   const Layout = layouts[post.layout || defaultLayout]
 
   return (
-    <>
+    <div className="flex justify-between">
+      <Toc toc={post.toc} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Layout content={mainContent} next={next} prev={prev}>
+      <Layout content={mainContent} next={next} prev={prev} className="relative">
         <MDXLayoutRenderer code={post.body.code} components={components} toc={post.toc} />
       </Layout>
-    </>
+    </div>
   )
 }

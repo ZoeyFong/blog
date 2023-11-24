@@ -1,0 +1,40 @@
+---
+title: 什么是 URL
+date: '2023-11-23'
+tags: ['URL']
+draft: false
+summary: URL (Uniform Resource Locator), 统一资源定位符，用于定位互联网上资源，俗称网址。
+---
+
+# 什么是 URL
+
+URL (Uniform Resource Locator), 统一资源定位符，用于定位互联网上资源，俗称网址。遵守以下的语法规则：
+
+`scheme://host.domain:port/path/filename?search#hash`
+
+<img src='/static/images/what-is-url.png' alt='what-is-url'/>
+
+各部分解释如下：
+
+- `scheme`: 定义因特网服务的类型。常见的协议 http, https, ftp ...
+- `host`: 定义域主机（http 的默认主机是 www）
+- `domain`: 定义因特网域名，比如 w3school.com.cn
+- `port`: 定义主机上的端口号（HTTP协议默认端口是80，HTTPS协议默认端口是443）
+- `path`: 定义服务器上的路径（如果省略，则文档必须位于网站的根目录中）
+- `filename`: 定义文档/资源的名称
+- `search`: 从"?"开始到"#"为止之间的部分为参数部分, 以"&"分割
+- `hash`: "#"之后的参数都是锚部分
+
+
+# 绝对与相对
+
+完整网址、隐去协议、隐去域名，都是绝对 URL。
+
+举个🌰：有时在 HTML 中我们会关联形如 `//x-cdn/main.js` 的资源，即为绝对 URL，不过隐藏了协议，在这种情况下，浏览器将使用与用于加载该 URL 的文档相同的协议来调用该 URL。
+
+其他所有不以`/`开头的 URL 都是相对 URL。浏览器将尝试在包含当前资源的相对路径中查找资源。
+
+---
+
+# 参考
+* [What is a URL?](https://developer.mozilla.org/en-US/docs/Learn/Common_questions/Web_mechanics/What_is_a_URL)

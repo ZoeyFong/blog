@@ -88,8 +88,6 @@ export const Posts = defineDocumentType(() => ({
     summary: { type: 'string' },
     images: { type: 'json' },
     layout: { type: 'string' },
-    bibliography: { type: 'string' },
-    canonicalUrl: { type: 'string' },
   },
   computedFields: {
     ...computedFields,

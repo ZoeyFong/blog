@@ -9,7 +9,7 @@ import SearchButton from './SearchButton'
 
 const Header = () => {
   return (
-    <header className="sticky top-0 flex items-center justify-between bg-gradient-to-b from-white from-75% px-[7%] py-[2%] dark:from-[#2727a]">
+    <header className="flex items-center justify-between bg-gradient-to-b from-white from-75% px-[7%] py-[2%] dark:from-[#2727a]">
       <div>
         <Link href="/" aria-label={siteMetadata.headerTitle}>
           <div className="flex items-center justify-between">
