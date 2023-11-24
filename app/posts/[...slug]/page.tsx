@@ -92,7 +92,7 @@ export default async function Page({ params }: { params: { slug: string[] } }) {
 
   return (
     <div className="flex justify-between">
-      <Toc toc={post.toc as Toc} />
+      <Toc toc={post.toc as unknown as Toc} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
