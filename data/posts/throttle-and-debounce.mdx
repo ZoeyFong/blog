@@ -7,7 +7,7 @@ draft: false
 
 # Debounce and Throttle
 
-> Throttle 是个不会被打断施法的🧙🏼‍♂️术士，Debounce 是个小 🌶️ 🐔 每次被打断需要重新读 delay 条
+> Throttle 是个不会被打断施法的🧙🏼‍♂️术士，Debounce 是个小🌶️🐔, 每次被打断需要重新读条
 
 从命名角度很容易理解两个函数的作用，`Throttle` 在一段时间内只会执行一次触发事件的回调，其余的回调会被“节流”。`Debounce` 顾名思义 de-bounce, 将多次事件优化成最后一次执行。
 
@@ -16,7 +16,9 @@ draft: false
 - 监听页面滚动事件，滚动条不停上下滚动，造成较大开销。应该使用？ —— Throttle, 一段时间内多余的回调应该 omit, 并且希望对用户行为作出反馈
 - 监听搜索框的文字变更后触发校验，不停更改内容，导致频繁校验甚至卡顿，应该使用？ —— Debounce, 只当 x ms 后不变更文字时，才进行“有意义”的校验
 
-## Debounce
+---
+
+# Debounce
 
 先别急，这段代码仅仅是最基础的，接下来会用 throttle 了解还有什么可深入的。
 
@@ -35,15 +37,19 @@ const debounce = function (fn, delay = 300) {
 }
 ```
 
-## Throttle
+---
+
+# Throttle
+
+## Basic Implementation
 
 按前面 debounce 的思路，直接复刻，但不会打断施法
 
 ```js
-const basicThrottle = function (fn, delay = 300) {
+const basicThrottle = function (fn, delay = 0) {
   let timer = null
   return function () {
-    if (timer) return
+    if (timer) return // return immediately if the timer existed
 
     const context = this
     const args = arguments
@@ -56,6 +62,8 @@ const basicThrottle = function (fn, delay = 300) {
 }
 ```
 
+## Throttle in Lodash
+
 但是使用 `lodash` 会发现，`throttle` 还有第三个参数：
 
 - `options.leading=true` (boolean): invoking on the leading edge of the timeout
@@ -63,43 +71,55 @@ const basicThrottle = function (fn, delay = 300) {
 
 * 使用 throttle 前:
 
-  <img src="static/images/before-throttle.webp" alt="before-throttle" />
+  <img src="/static/images/before-throttle.webp" alt="before-throttle" />
 
-* 使用 defaylt throttle (leading: true, trailing: true) 后:
+* 使用 default throttle `leading: true, trailing: true`
 
-  <img src="static/images/default-throttle.webp" alt="default-throttle" />
+  <img src="/static/images/default-throttle.webp" alt="default-throttle" />
 
-* 首节流 — {leading: true, trailing: false}
+* 首节流 `leading: true, trailing: false`
 
-  <img src="static/images/leading-throttle.webp" alt="leading-throttle" />
+  <img src="/static/images/leading-throttle.webp" alt="leading-throttle" />
 
-* 尾节流 — {leading: false, trailing: true}
+* 尾节流 `leading: false, trailing: true`，F 推迟到 55 执行是因为 delay 了最后一个 10
 
-  <img src="static/images/trailing-throttle.webp" alt="trailing-throttle" />
+  <img src="/static/images/trailing-throttle.webp" alt="trailing-throttle" />
 
-按照`lodash`的概念，上面的那段`basicThrottle`的 options 配置应为 { leading: false, trailing: false }。尽管第一次的回调会触发，但是在 `delay` 后，而不是立即执行。
+### 上面那段 `basicThrottle` 属于首节流还是尾节流
+
+按照`lodash`的概念，上面的那段`basicThrottle`我们来归类一下。看了网上很多文章，说计时器版本的为“尾节流”，因为首次的回调没有执行。
+
+但是我认为，它既不是首节流也不是尾节流... 因为：
+
+1. 不满足首节流的首次立即执行
+2. 最后一个回调不会等待 delay 后最终执行
+
+如果硬要归类，应该是非立即执行版的首节流。尽管第一次的回调会触发，但是在 `delay` 后，而不是立即执行。
 
 为了验证，我们写个测试:
 
 ```
 // Console
-a = basicThrottle(console.debug, 3000)
-[a(1), a(2), a(3)] // 3s 后 log 1
+a = basicThrottle(console.debug, 1000)
+[a(1), a(2), a(3)] // 1s 后 log 1
 ```
 
-接下来我们实现完整的 `options`。
+## Throttle with Options
+
+实现一个符合 lodash throttle 函数签名的节流函数
 
 ```js
-const throttle = function (fn, delay = 300, options = { leading: true, trailing: true }) {
+const throttle = function (fn, delay = 0, options = {}) {
+  const { leading = true, trailing = true } = options
   let timer = null
-  let context = null
-  let args = null
+  let lastContext = null
+  let lastArgs = null
 
   const later = () => {
-    if (option.trailing && args) {
-      func.apply(context, args)
-      context = null
-      args = null
+    if (trailing) {
+      fn.apply(lastContext, lastArgs)
+      lastContext = null
+      lastArgs = null
       timer = setTimeout(later, delay)
     } else {
       timer = null
@@ -107,16 +127,18 @@ const throttle = function (fn, delay = 300, options = { leading: true, trailing:
   }
 
   return function () {
-    if (timer) {
-      context = this
-      args = arguments
-      return
-    }
-    if (option.leading) {
-      func.apply(this, args)
-    } else {
-      context = this
-      args = args
+    /**
+     * store the current context and arguments for the execution after the delay
+     * each time the function called with a timer existed, these two would be updated
+     */
+    lastContext = this
+    lastArgs = arguments
+
+    if (timer) return
+
+    // execute the function immediately when no timer exists [leading = true]
+    if (leading) {
+      fn.apply(this, arguments)
     }
 
     timer = setTimeout(later, delay)
@@ -124,9 +146,60 @@ const throttle = function (fn, delay = 300, options = { leading: true, trailing:
 }
 ```
 
+再跑一下验证，看看是否与`lodash`概念相符：
+
+```
+// Console
+a = throttle (console.debug, 1000, {leading:false})
+[a(1), a(2), a(3)] // 1s 后 log 3
+
+a = throttle (console.debug, 1000, {trailing:false})
+[a(1), a(2), a(3)] // 1s 后 log 1
+
+a = throttle (console.debug, 1000, {trailing:false, leading:false})
+[a(1), a(2), a(3)] // 无 log
+```
+
+## rAFThrottle
+
+阅读 `lodash` 源码会发现，里面使用了 `requestAnimationFrame` （后面简称 RAF）。
+
+```
+ * If `wait` is omitted in an environment with `requestAnimationFrame`, `func`
+ * invocation will be deferred until the next frame is drawn (typically about
+ * 16ms).
+```
+
+### 什么是 RAF
+
+`window.requestAnimationFrame()` 告诉浏览器——你希望执行一个动画，并且要求浏览器在下次重绘之前调用指定的回调函数更新动画。该方法需要传入一个回调函数作为参数，该回调函数会在浏览器下一次重绘之前执行。
+
+### 如何使用 RAF 写一个 `rAFThrottle`
+
+写之前明确这个节流函数可以做什么 —— `rAFThrottle` 接受一个函数作为参数，但不会立即执行，直到浏览器下一次重绘前。
+
+```js
+const rAFThrottle = (fn) => {
+  let reqId
+  let args
+
+  const later = (context) => () => {
+    fn.apply(context, args)
+  }
+
+  return function () {
+    if (reqId) cancelAnimationFrame(reqId)
+    args = arguments
+    reqId = requestAnimationFrame(later(this))
+  }
+}
+```
+
+BTW, 这是个尾节流。
+
 ---
 
-# 参考
+# Reference
 
 - [Throttle & Debounce behavior (lodash)](https://ellenaua.medium.com/throttle-debounce-behavior-lodash-6bcae1494e03)
 - [Write a better throttle function with Underscore](https://gist.github.com/pinglu85/fbe672cb84faa987a1e97e20d844b108)
