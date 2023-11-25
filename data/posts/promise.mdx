@@ -1,0 +1,61 @@
+---
+title: 手写 Promise
+date: '2023-11-25'
+tags: ['JavaScript', 'Promise']
+draft: false
+---
+
+# Promise
+
+## Promise.all
+
+```js
+/**
+ * @param  an iterable of promises
+ * @returns a single promise
+ *
+ * if all of the input's promises fulfill, returns fulfillment values
+ * else returns the first rejected reason
+ */
+const myPromiseAll = (promises) => {
+  const len = promises.length
+  if (!len) return Promise.resolve([])
+
+  const allRes = []
+  let count = 0
+
+  /**
+   * [Symbol.iterator]
+   * use for..of instead of map / forEach
+   * cause the argument of Promise.all could also be Set, Map, WeakMap which is iterable
+   */
+  return new Promise((resolve, reject) => {
+    for (const promise of promises) {
+      promise
+        .then((res) => {
+          allRes.push(res)
+          if (++count === len) resolve(allRes)
+        })
+        .catch(reject)
+    }
+  })
+}
+```
+
+## Promise.race
+
+```js
+/**
+ * @param an iterable of promises
+ * @returns a single promise of first fulfilled or rejected vaule
+ */
+const myPromiseRace = (promises) => {
+  const len = promises.length
+  if (!len) return Promise.resolve()
+
+  const rejects = []
+  for (const promise of promises) {
+    promise.then(resolve).catch(reject)
+  }
+}
+```

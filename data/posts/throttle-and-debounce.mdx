@@ -1,0 +1,132 @@
+---
+title: 手写 debounce 和 throttle
+date: '2023-11-25'
+tags: ['JavaScript', 'Debounce', 'Throttle']
+draft: false
+---
+
+# Debounce and Throttle
+
+> Throttle 是个不会被打断施法的🧙🏼‍♂️术士，Debounce 是个小 🌶️ 🐔 每次被打断需要重新读 delay 条
+
+从命名角度很容易理解两个函数的作用，`Throttle` 在一段时间内只会执行一次触发事件的回调，其余的回调会被“节流”。`Debounce` 顾名思义 de-bounce, 将多次事件优化成最后一次执行。
+
+举🌰：
+
+- 监听页面滚动事件，滚动条不停上下滚动，造成较大开销。应该使用？ —— Throttle, 一段时间内多余的回调应该 omit, 并且希望对用户行为作出反馈
+- 监听搜索框的文字变更后触发校验，不停更改内容，导致频繁校验甚至卡顿，应该使用？ —— Debounce, 只当 x ms 后不变更文字时，才进行“有意义”的校验
+
+## Debounce
+
+先别急，这段代码仅仅是最基础的，接下来会用 throttle 了解还有什么可深入的。
+
+```js
+const debounce = function (fn, delay = 300) {
+  let timer = null
+  return function () {
+    const context = this
+    const args = arguments
+
+    timer && clearTimeout(timer)
+    timer = setTimeout(() => {
+      fn.apply(context, args)
+    }, delay)
+  }
+}
+```
+
+## Throttle
+
+按前面 debounce 的思路，直接复刻，但不会打断施法
+
+```js
+const basicThrottle = function (fn, delay = 300) {
+  let timer = null
+  return function () {
+    if (timer) return
+
+    const context = this
+    const args = arguments
+
+    timer = setTimeout(() => {
+      fn.apply(context, arguments)
+      timer = null
+    }, delay)
+  }
+}
+```
+
+但是使用 `lodash` 会发现，`throttle` 还有第三个参数：
+
+- `options.leading=true` (boolean): invoking on the leading edge of the timeout
+- `options.trailing=true` (boolean): invoking on the trailing edge of the timeout
+
+* 使用 throttle 前:
+
+  <img src="static/images/before-throttle.webp" alt="before-throttle" />
+
+* 使用 defaylt throttle (leading: true, trailing: true) 后:
+
+  <img src="static/images/default-throttle.webp" alt="default-throttle" />
+
+* 首节流 — {leading: true, trailing: false}
+
+  <img src="static/images/leading-throttle.webp" alt="leading-throttle" />
+
+* 尾节流 — {leading: false, trailing: true}
+
+  <img src="static/images/trailing-throttle.webp" alt="trailing-throttle" />
+
+按照`lodash`的概念，上面的那段`basicThrottle`的 options 配置应为 { leading: false, trailing: false }。尽管第一次的回调会触发，但是在 `delay` 后，而不是立即执行。
+
+为了验证，我们写个测试:
+
+```
+// Console
+a = basicThrottle(console.debug, 3000)
+[a(1), a(2), a(3)] // 3s 后 log 1
+```
+
+接下来我们实现完整的 `options`。
+
+```js
+const throttle = function (fn, delay = 300, options = { leading: true, trailing: true }) {
+  let timer = null
+  let context = null
+  let args = null
+
+  const later = () => {
+    if (option.trailing && args) {
+      func.apply(context, args)
+      context = null
+      args = null
+      timer = setTimeout(later, delay)
+    } else {
+      timer = null
+    }
+  }
+
+  return function () {
+    if (timer) {
+      context = this
+      args = arguments
+      return
+    }
+    if (option.leading) {
+      func.apply(this, args)
+    } else {
+      context = this
+      args = args
+    }
+
+    timer = setTimeout(later, delay)
+  }
+}
+```
+
+---
+
+# 参考
+
+- [Throttle & Debounce behavior (lodash)](https://ellenaua.medium.com/throttle-debounce-behavior-lodash-6bcae1494e03)
+- [Write a better throttle function with Underscore](https://gist.github.com/pinglu85/fbe672cb84faa987a1e97e20d844b108)
