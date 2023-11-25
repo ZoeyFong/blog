@@ -6,16 +6,24 @@ const Toc = ({ toc }: { toc: Toc }) => (
       switch (depth) {
         case 1:
           return (
-            <div className="text-base" key={value}>
-              <a href={url} style={{ textDecoration: 'none' }}>
+            <div className="px-3 py-2 text-sm font-medium " key={value}>
+              <a
+                href={url}
+                className="text-gray-500 hover:text-primary-500 dark:text-gray-300 dark:hover:text-primary-500"
+                style={{ textDecoration: 'none' }}
+              >
                 {value}
               </a>
             </div>
           )
         case 2:
           return (
-            <div className="ml-4 text-sm" key={value}>
-              <a href={url} style={{ textDecoration: 'none' }}>
+            <div className="ml-6 px-3 py-2 text-sm font-medium" key={value}>
+              <a
+                href={url}
+                className="text-gray-500 hover:text-primary-500 dark:text-gray-300 dark:hover:text-primary-500"
+                style={{ textDecoration: 'none' }}
+              >
                 {value}
               </a>
             </div>
