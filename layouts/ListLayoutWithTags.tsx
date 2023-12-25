@@ -74,7 +74,6 @@ export default function ListLayoutWithTags({
   const sortedTags = tagKeys.sort((a, b) => tagCounts[b] - tagCounts[a])
 
   const displayPosts = initialDisplayPosts.length > 0 ? initialDisplayPosts : posts
-
   return (
     <div>
       <div className="space-y-2 pt-6 md:space-y-5">
@@ -82,15 +81,15 @@ export default function ListLayoutWithTags({
           All Posts
         </h1>
       </div>
-      <div className="flex justify-between">
-        <div className="hidden h-full max-h-screen min-w-[280px] max-w-[280px] flex-wrap overflow-auto rounded bg-gray-50 pt-5 shadow-md dark:bg-[#27272a] dark:shadow-gray-800/40 sm:flex">
+      <div className="flex">
+        <div className="mr-10 hidden h-full max-h-screen min-w-[280px] max-w-[280px] flex-wrap overflow-auto rounded bg-gray-50 pt-5 shadow-md dark:bg-[#27272a] dark:shadow-gray-800/40 sm:flex">
           <div className="px-6 py-2">
             <ul>
               {sortedTags.map((t) => {
                 return (
                   <li key={t} className="my-3">
-                    {pathname.split('/tags/')[1] === slug(t) ? (
-                      <h3 className="inline px-3 py-2 text-sm font-bold uppercase text-primary-500">
+                    {pathname.split('/tags/')[1] === encodeURIComponent(slug(t)) ? (
+                      <h3 className="inline px-3 py-2 text-sm font-bold uppercase text-primary-500 dark:text-gray-300">
                         {`${t} (${tagCounts[t]})`}
                       </h3>
                     ) : (

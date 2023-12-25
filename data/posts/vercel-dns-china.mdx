@@ -1,0 +1,46 @@
+---
+title: 解决 Vercel 部署网站在国内被墙
+date: '2023-12-25'
+tags: ['VERCEL', 'DNS']
+draft: false
+---
+
+> 12.25 各位圣诞快乐！🎄 这两天想把自己的博客给亲朋好友看，结果发现 Vercel 自带的`.app`域名被墙。赶紧折腾一下，写了博客不能示人，如同锦衣夜行！
+
+# TLDR;
+如果你了解 DNS 的 CNAME/A 记录，可以直接拿走下面的两行配置。
+
+```yaml
+CNAME: name-china.vercel-dns.com
+A: 76.223.126.88
+```
+
+Vercel 为墙内准备的贴心解析，二选一即可。出自[Vercel Incident History](https://www.vercel-status.com/history)。
+
+
+# 准备条件
+
+- 申请一个国内可访问的域名（新手可1元购于阿里云，`xyz`, `top`这种后缀都是很便宜的）
+- 注册 Cloudfare（为什么不用阿里云自带的DNS? 免费版不支持海外🚬）
+
+# 步骤
+
+1. 将准备好的国内域名加入 Cloudfare websites, 然后选择免费计划。
+   <img src="/static/images/cloudfare-add-domain.png" alt="cloudfare-add-domain" />
+2. 点进该域名的配置面板，增加两条 DNS 配置。对于`blog-zoey.top`这个一级域名来说，只需要添加一条 A 记录`@`的解析即，**`76.223.126.88`** 是 vercel 贴心为墙内用户准备的 IP。添加`@`记录后，保存后显示的是你的域名.
+   <img src="/static/images/cloudfare-dns-a.png" alt="cloudfare-dns-a" />
+3. 接着往下滑，看到配置 Nameservers, 是 Cloudfare 给你准备好的，直接复制粘贴到阿里云后台的 DNS 修改 - DNS 服务器。
+   <img src="/static/images/cloudfare-add-nameservers.png" alt="cloudfare-add-nameservers" />
+   <img src="/static/images/aliyun-dns-nameservers.png" alt="aliyun-dns-nameservers" width={500}/>
+4. 接下来是⌛️等待时间，Cloudfare 会给你发邮件的。通过后，记得配置 SSL - strict, 否则会因重定向过多无法打开。
+   <img src="/static/images/cloudfare-ssl-strict.png" alt="cloudfare-ssl-strict" />
+5. 快乐探索 Cloudfare 优化各项配置...
+6. 打开 Vercel 的部署后台，在 Settings - Domians 加上操作一顿后的域名，因为我们直接配置的一级域名，所以选择 `Add blog-zoey.top` 即可。配置无误的话，下方会直接 check 通过。
+   <img src="/static/images/vercel-add-domain.png" alt="vercel-add-domain" />
+   <img
+     src="/static/images/vercel-add-domain-config.png"
+     alt="vercel-add-domain-config"
+     width={400}
+   />
+
+大功告成 🚀 抽空再写一下 A 和 CNAME...

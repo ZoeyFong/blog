@@ -6,11 +6,13 @@ const useMDXComponents = (components: MDXComponents): MDXComponents => {
     img: (props) => (
       //@ts-ignore-next-line
       <Image
-        {...props}
         sizes="100vw"
         style={{ width: '100%', height: 'auto' }}
+        //@ts-expect-error
         width={0}
+        //@ts-expect-error
         height={0}
+        {...props}
       />
     ),
     ...components,
