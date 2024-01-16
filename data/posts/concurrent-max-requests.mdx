@@ -1,0 +1,167 @@
+---
+title: 写一个函数，实现限制最大并发数的并发请求
+date: '2024-01-16'
+tags: ['Javscript', 'Interview']
+draft: false
+summary: 接受请求 url 数组和 limit 并发限制数。可以并发请求，同时并发数不能超过 limit。
+---
+
+> 一言不合就跨年了，时间也太快了，加班加到两眼发黑。最近抽空投了两三家外企，纯算法题 AC 得都还可以，但是这道面试题给我整懵了，🥬 笑了... 赶紧复盘下。
+
+# 题干
+
+面试官出题：请写一个函数 `limitedConcurrentReqs(reqUrls, limit)` 实现最大并发数的并发请求。不管请求成功还是失败，都当作结果返回，最后返回一个结果数组，对应每个 `reqUrl` 的请求结果。
+
+# Version 1 审题错误版本
+
+首先，我就把题理解错了，我以为一次最多十个，不超过就可以了。于是我写了下面这段：
+
+```js
+const limitedConcurrentReqs = async (urls, limit = 10) => {
+  const ans = []
+  while (urls.length) {
+    const subs = urls.splice(0, Math.min(limit, urls.length))
+    const res = await Promise.all(
+      subs.map((url) => new Promise((resolve) => fetch(url).then(resolve).catch(resolve)))
+    )
+    ans.push(...subs)
+  }
+  return ans
+}
+```
+
+**思路：** 每次迭代从 `urls` 取出前 `limit` 个，使用 `Promise.all` 包裹住，其中注意 catch 需要一并 resolve error, 否则如果输入的任何 Promise 被拒绝，则返回被拒绝的结果，这不符合题意。
+
+**面试官：** emmm 你这样写的话，某个 `Promise.all` 中任意提前完成的请求都要一直等着最慢的结束，所以某一时刻并发数并不能达到 `limit`。
+
+**我：** 还真是... 我看看啊
+
+# Version 2 大脑混乱版本
+
+**我（不知道哪个筋搭错了）：** 哦那 Promise.all 改 race 吧！
+
+**面试官（表情：你没事吧）：** 那返回结果不就丢了吗？
+
+**我：** 哦哦哦... (这时发现自己提了非常离谱的回答，已经开始慌了，我觉得这也是脑子宕机的起点) 然后我有点开始瞎写了...
+
+```js
+const limitedConcurrentReqs = async (urls, limit = 10) => {
+  let memoI = -1
+  const n = urls.length
+
+  const sendReq = (i) =>
+    new Promise((resolve) =>
+      fetch(urls[i])
+        .then(resolve)
+        .catch(resolve)
+        .finally(() => {
+          // 一个请求完成就立刻补上下一个
+          memoI++
+          if (memoI < n) {
+            sendReq(memoI)
+          }
+        })
+    )
+
+  const ans = []
+
+  for (let i = 0; i < n; ) {
+    const subs = await Promise.all(
+      urls.slice(memoI + 1, limit + memoI + 1).map((_, j) => sendReq(j + memoI + 1))
+    )
+    i = memoI + 1
+    ans.push(...subs)
+  }
+  return ans
+}
+```
+
+🆘 代码细节先不说，就光看 `for` 循环套着 callback loop 每次固定重新发起 `limit` 个请求，就感觉脑子就不太正常... 下一次并发 `limit` 个的时候，根本不知道目前并发数是多少。因为太过沙雕，面完我就想赶紧记录一下🥹
+
+# Version 3 痛定思痛版本
+
+## 思路
+
+面完了，估计也挂了... 只能自己复盘一下写个正确的。重新整理一下思路：
+
+**Q: 怎么保证任意时刻，都有 `limit` 个并发请求存在？**
+
+A: 用变量 `current` 记录下一个要发起的 index, 一旦并发中的任意请求完成，就接着发起 `current` 位置的下一个请求。再用一个 `completed` 记录多少个请求已完成，在等于总数的时候就返回。
+
+**Q: 需要迭代吗？**
+
+A: 仅第一次需要，同时发起 `limit` 个请求，后面全部通过递归调用完成后续请求。
+
+## 代码
+
+```js
+const limitedConcurrentReqs = (urls, limit = 10) => {
+  return new Promise((resolve) => {
+    const n = urls.length
+
+    if (!n) {
+      resolve([])
+      return
+    }
+
+    const ans = new Array(n)
+    let completed = 0 // 已完成的请求数
+    let current = 0 // 控制进度，当前发起的请求 index
+
+    const sendReq = () => {
+      // 记录当前 current index, 便于在回调中使用
+      const progress = current
+      current++
+
+      // 如果进展的 index 达到总数就结束递归
+      if (progress >= n) return
+
+      console.debug(`Request ${progress} is in progress`, performance.now())
+
+      fetch(urls[progress])
+        .then((res) => (ans[progress] = res))
+        .catch((e) => (ans[progress] = e))
+        .finally(() => {
+          // 已完成数++ 同时判断是否需要 resolve 全部结果
+          completed++
+          if (completed >= n) {
+            resolve(ans)
+            return
+          }
+
+          // 递归调用，从 current 位置继续发起下一个请求
+          console.debug(`Request ${progress} is finished`, performance.now())
+          sendReq()
+        })
+    }
+
+    // 程序入口，如果 urls 长度本身就比 limit 小，那就直接全部发起
+    while (current < Math.min(limit, n)) {
+      sendReq()
+    }
+  })
+}
+```
+
+## 验证
+
+接下来用 `jsonplaceholder` 简单地验证一下:
+
+```js
+const urls = new Array(12)
+  .fill('')
+  .map((_, i) => `https://jsonplaceholder.typicode.com/posts/${i + 1}`)
+
+limitedConcurrentReqs(urls, 3).then((res) => console.log(res))
+```
+
+Console 截图：
+
+<img src="/static/images/console-concurrent-reqs.png" alt='console-concurrent-reqs'/>
+
+
+# 后话
+
+大功告成 🎉 这脑子怎么就不能在面试的时候转起来呢！SIGH!!! 
+
+事实证明面试中一旦慌了就容易黄了（单押 x 1）🤷🏻‍♀️ 还是面得不够多吧，加班之外多抽空学习和思考下 💻
