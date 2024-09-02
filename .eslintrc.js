@@ -34,6 +34,7 @@ module.exports = {
         allowExpressionValues: true,
       },
     ],
+    'jsx-a11y/click-events-have-key-events': false,
     'react/prop-types': 0,
     '@typescript-eslint/no-unused-vars': 0,
     'react/no-unescaped-entities': 0,
